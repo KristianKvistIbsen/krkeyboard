@@ -1,0 +1,18 @@
+# Build Options
+#   change yes to no to disable
+
+AUDIO_SUPPORTED = no
+RGB_MATRIX_SUPPORTED = no #CHANGED BY KRK
+RGBLIGHT_SUPPORTED = no   #CHANGED BY KRK
+BOOTMAGIC_ENABLE = yes
+EXTRAKEY_ENABLE = yes
+SPLIT_KEYBOARD = no 	  #CHANGED BY KRK
+SERIAL_DRIVER = vendor
+
+# Trackball
+POINTING_DEVICE_ENABLE = yes
+POINTING_DEVICE_DRIVER = pmw3389 # Change to pmw3360 if you use that
+
+# Encoder
+#ENCODER_ENABLE = yes  	  #CHANGED BY KRK
+#ENCODER_MAP_ENABLE = yes  #CHANGED BY KRK
