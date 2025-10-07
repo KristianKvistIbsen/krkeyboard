@@ -1,18 +1,17 @@
 # Build Options
-#   change yes to no to disable
-
-AUDIO_SUPPORTED = no
-RGB_MATRIX_SUPPORTED = no #CHANGED BY KRK
-RGBLIGHT_SUPPORTED = no   #CHANGED BY KRK
 BOOTMAGIC_ENABLE = yes
-EXTRAKEY_ENABLE = yes
-SPLIT_KEYBOARD = no 	  #CHANGED BY KRK
-SERIAL_DRIVER = vendor
+EXTRAKEY_ENABLE  = yes
+MOUSEKEY_ENABLE  = yes
+CONSOLE_ENABLE   = yes
 
 # Trackball
 POINTING_DEVICE_ENABLE = yes
-POINTING_DEVICE_DRIVER = pmw3389 # Change to pmw3360 if you use that
+POINTING_DEVICE_DRIVER = pmw3389
 
-# Encoder
-#ENCODER_ENABLE = yes  	  #CHANGED BY KRK
-#ENCODER_MAP_ENABLE = yes  #CHANGED BY KRK
+# Prefer defining MCU/BOARD in keyboard.json to avoid duplicate warnings.
+# If you keep them here, ensure they are NOT also in keyboard.json.
+# MCU   = RP2040
+# BOARD = GENERIC_RP_RP2040
+
+# Disable keymap introspection to avoid unknown keycode errors
+KEYMAP_INTROSPECTION_ENABLE = no

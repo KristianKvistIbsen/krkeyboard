@@ -1,0 +1,56 @@
+Im making a custom handwired keyboard and i need you to make a qmk keymap file. I have a keyboard with 5 rows and 5 columns. there are buttons at
+
+00 01 02 03 04
+10 11 12 13 14
+20 21 22 23 24
+      32 33
+40 41 42 43
+
+i have two layers, and it should toggle between the two layers when i press 40 button.
+
+The rest of the buttons have the following keys in layer 0:
+
+00 --> back in browser
+01 --> Forward in browser
+02 --> F5
+03 --> ctrl + A
+04 --> END
+10 --> Left Mouse button
+11 --> Right Mouse Button
+12 --> Middle mouse button
+13 --> .
+14 --> HOME
+20 --> mouse up and down becomes zoom
+21 --> mouse left and right becomes pan and mouse up and down becomes scroll
+22 --> Backspace
+23 --> arrow key up
+24 --> arrow key right
+32 --> arrow key left
+33 --> arrow key down
+41 --> Enter
+42 --> Delete
+43 --> toggle between mouse speed 100% and 20%
+
+
+and for layer 1:
+
+00 --> 7
+01 --> 8
+02 --> 9
+03 --> 0
+04 --> END
+10 --> 4
+11 --> 5
+12 --> 6
+13 --> ,
+14 --> HOME
+20 --> 1
+21 --> 2
+22 --> 3
+23 --> arrow key up
+24 --> arrow key right
+32 --> arrow key left
+33 --> arrow key down
+41 --> Enter
+42 --> Delete
+43 --> toggle between mouse speed 100% and 20%
