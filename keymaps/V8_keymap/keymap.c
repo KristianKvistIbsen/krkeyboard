@@ -93,7 +93,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_WBAK, KC_WFWD, KC_F5,   KC_BSPC, KC_ESC,              // [0,1] to [0,5]
         MS_BTN1, MS_BTN2, MS_BTN3, KC_DOT,  KC_TAB,              // [1,1] to [1,5]
         ZOOM_MODE, SCROLL_MODE, LGUI(KC_DOT), KC_UP, KC_RGHT, KC_MUTE, // [2,0] to [2,5]
-                                            KC_LEFT, KC_DOWN,    // [3,3] to [3,4]
+                                            KC_LEFT, KC_DOWN,    // [3,4] to [3,5]
         TG(_FN), KC_ENT, KC_DEL, MS_TOG, KC_PGDN, KC_PGUP        // [4,0] to [4,5]
     ),
 
@@ -101,7 +101,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_7, KC_8, KC_9, KC_0, KC_END,          // [0,1] to [0,5]
         KC_4, KC_5, KC_6, KC_COMM, KC_HOME,      // [1,1] to [1,5]
         KC_1, KC_2, KC_3, KC_UP,   KC_RGHT, KC_MINS, // [2,0] to [2,5]
-                             KC_LEFT, KC_DOWN,    // [3,3] to [3,4]
+                             KC_LEFT, KC_DOWN,    // [3,4] to [3,5]
         TG(_FN), KC_ENT, KC_DEL, MS_TOG, KC_LBRC, KC_RBRC // [4,0] to [4,5]
     )
 };
@@ -139,4 +139,16 @@ report_mouse_t pointing_device_task_user(report_mouse_t mr) {
     mr.x = 0;
     mr.y = 0;
     return mr;
+}
+
+// Map encoder rotation to Volume Up and Down
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    if (index == 0) { // First (and only) encoder
+        if (clockwise) {
+            tap_code(KC_VOLU);
+        } else {
+            tap_code(KC_VOLD);
+        }
+    }
+    return false;
 }
