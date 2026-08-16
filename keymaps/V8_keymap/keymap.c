@@ -1,154 +1,107 @@
 #include QMK_KEYBOARD_H
 
-// Allow using MS_BTN1/2/3 tokens in the keymap
-#ifndef MS_BTN1
-#    define MS_BTN1 KC_BTN1
-#    define MS_BTN2 KC_BTN2
-#    define MS_BTN3 KC_BTN3
-#endif
-
-enum layers {
-    _BASE,
-    _FN,
-};
-
 enum custom_keycodes {
-    MS_TOG = SAFE_RANGE,  // toggle mouse CPI (precision mode)
-    ZOOM_MODE,            // convert vertical movement to Ctrl+wheel
-    SCROLL_MODE,          // convert movement to vertical/horizontal wheel
+    MS_SCRL = SAFE_RANGE,  // L: hold -> trackball moves become scroll (vertical & horizontal)
+    MS_ZOOM,               // M: hold -> trackball moves become ctrl+scroll (zoom)
+    MS_SLOW,               // X: tap to toggle trackball movement between normal and ~5% speed
 };
 
-static bool mouse_slow = false;
-static bool zoom_mode = false;
+const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+    [0] = LAYOUT(
+        KC_WWW_BACK,    KC_WWW_FORWARD, KC_F5,          KC_HOME,      KC_END,
+        MS_BTN1,        MS_BTN2,        MS_BTN3,        LGUI(KC_D),   LGUI(KC_TAB),
+        KC_MPLY,        MS_ZOOM,        MS_SCRL,        KC_BSPC,      KC_UP,      KC_RGHT,
+                                                        KC_LEFT,      KC_DOWN,
+        LALT(KC_TAB),   LCTL(KC_V),     LCTL(KC_C),     KC_ENT,       KC_DEL,     MS_SLOW
+    )
+};
+
+bool encoder_update_user(uint8_t index, bool clockwise) {
+    if (index == 0) {
+        if (clockwise) {
+            tap_code(KC_VOLD);
+        } else {
+            tap_code(KC_VOLU);
+        }
+    }
+    return false;
+}
+
 static bool scroll_mode = false;
+static bool zoom_mode   = false;
+static bool slow_mode   = false;
 
-// Accumulators so small sensor deltas still produce steps
-static int16_t acc_x = 0;
-static int16_t acc_y = 0;
-
-// Tunables
-static const uint16_t CPI_FAST = 800;   // adjust to taste
-static const uint16_t CPI_SLOW = 160;   // ~20% of fast
-
-// How much motion makes one step (scroll/zoom)
-static const uint8_t WHEEL_STEP = 8;    // scroll sensitivity
-
-// Convert motion into discrete steps with accumulation
-static inline int8_t to_steps(int16_t* acc, int16_t delta, uint8_t step) {
-    *acc += delta;
-    int8_t out = 0;
-    while (*acc >= step)   { out++;  *acc -= step; }
-    while (*acc <= -step)  { out--;  *acc += step; }
-    return out;
-}
-
-static inline void reset_accumulators(void) {
-    acc_x = acc_y = 0;
-}
-
-void keyboard_post_init_user(void) {
-    debug_enable = true;
-    debug_matrix = true;
-}
-
-void pointing_device_init_user(void) {
-    // Set initial CPI for the PMW3389 via QMK pointing device API
-    pointing_device_set_cpi(CPI_FAST);
-}
-
-bool process_record_user(uint16_t keycode, keyrecord_t* record) {
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     switch (keycode) {
-        case MS_TOG:
-            if (record->event.pressed) {
-                mouse_slow = !mouse_slow;
-                // Use CPI change only — no extra divide so it won't "freeze"
-                pointing_device_set_cpi(mouse_slow ? CPI_SLOW : CPI_FAST);
-            }
+        case MS_SCRL:
+            scroll_mode = record->event.pressed;
             return false;
-
-        case ZOOM_MODE:
+        case MS_ZOOM:
             zoom_mode = record->event.pressed;
-            if (zoom_mode) {
-                reset_accumulators();
+            if (record->event.pressed) {
+                register_code(KC_LCTL);
             } else {
-                // make sure Ctrl is released when leaving zoom mode
                 unregister_code(KC_LCTL);
             }
             return false;
-
-        case SCROLL_MODE:
+        case MS_SLOW:
             if (record->event.pressed) {
-                scroll_mode = true;
-                reset_accumulators();
-            } else {
-                scroll_mode = false;
+                slow_mode = !slow_mode;
             }
             return false;
     }
     return true;
 }
 
-const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    [_BASE] = LAYOUT(
-        KC_WBAK, KC_WFWD, KC_F5,   KC_BSPC, KC_ESC,              // [0,1] to [0,5]
-        MS_BTN1, MS_BTN2, MS_BTN3, KC_DOT,  KC_TAB,              // [1,1] to [1,5]
-        ZOOM_MODE, SCROLL_MODE, LGUI(KC_DOT), KC_UP, KC_RGHT, KC_MUTE, // [2,0] to [2,5]
-                                            KC_LEFT, KC_DOWN,    // [3,4] to [3,5]
-        TG(_FN), KC_ENT, KC_DEL, MS_TOG, KC_PGDN, KC_PGUP        // [4,0] to [4,5]
-    ),
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    // Accumulators store sub-pixel/sub-scroll movements between polling cycles
+    static int16_t scroll_accum_v = 0;
+    static int16_t scroll_accum_h = 0;
+    static int16_t slow_accum_x = 0;
+    static int16_t slow_accum_y = 0;
 
-    [_FN] = LAYOUT(
-        KC_7, KC_8, KC_9, KC_0, KC_END,          // [0,1] to [0,5]
-        KC_4, KC_5, KC_6, KC_COMM, KC_HOME,      // [1,1] to [1,5]
-        KC_1, KC_2, KC_3, KC_UP,   KC_RGHT, KC_MINS, // [2,0] to [2,5]
-                             KC_LEFT, KC_DOWN,    // [3,4] to [3,5]
-        TG(_FN), KC_ENT, KC_DEL, MS_TOG, KC_LBRC, KC_RBRC // [4,0] to [4,5]
-    )
-};
+    if (scroll_mode || zoom_mode) {
+        scroll_accum_v += mouse_report.y;
+        scroll_accum_h += mouse_report.x;
 
-report_mouse_t pointing_device_task_user(report_mouse_t mr) {
-    // Default pointer movement when no scroll/zoom mode is active
-    if (!zoom_mode && !scroll_mode) {
-        unregister_code(KC_LCTL);  // ensure Ctrl is not stuck
-        reset_accumulators();      // keep things tidy between modes
-        return mr;                 // CPI handles precision; no extra divide
+        // Adjust the '8' here to change scroll sensitivity (higher = slower scroll)
+        int16_t scroll_steps_v = scroll_accum_v / 8;
+        int16_t scroll_steps_h = scroll_accum_h / 8;
+
+        mouse_report.v = -scroll_steps_v;
+        mouse_report.h = scroll_steps_h;
+
+        // Subtract the applied steps to keep the fractional remainder for next time
+        scroll_accum_v -= scroll_steps_v * 8;
+        scroll_accum_h -= scroll_steps_h * 8;
+
+        // Zero out standard cursor movement
+        mouse_report.x = 0;
+        mouse_report.y = 0;
+
+    } else if (slow_mode) {
+        slow_accum_x += mouse_report.x;
+        slow_accum_y += mouse_report.y;
+
+        // 5% speed is equal to dividing by 20
+        int16_t new_x = slow_accum_x / 20;
+        int16_t new_y = slow_accum_y / 20;
+
+        mouse_report.x = new_x;
+        mouse_report.y = new_y;
+
+        // Subtract the applied steps to keep the fractional remainder for next time
+        slow_accum_x -= new_x * 20;
+        slow_accum_y -= new_y * 20;
+
+    } else {
+        // Reset accumulators when not using these modes so residual
+        // movements don't cause sudden cursor/scroll jumps later.
+        scroll_accum_v = 0;
+        scroll_accum_h = 0;
+        slow_accum_x = 0;
+        slow_accum_y = 0;
     }
 
-    // Convert motion to wheel steps using accumulators
-    int8_t wheel_v = -to_steps(&acc_y, mr.y, WHEEL_STEP); // vertical wheel from Y
-    int8_t wheel_h = -to_steps(&acc_x, mr.x, WHEEL_STEP); // horizontal wheel from X
-
-    if (zoom_mode) {
-        // Ctrl + vertical wheel = zoom in most apps
-        if (wheel_v != 0) {
-            register_code(KC_LCTL);
-            mr.v = wheel_v;  // send vertical wheel
-        } else {
-            // no vertical scroll this frame; release Ctrl so it doesn't get "stuck"
-            unregister_code(KC_LCTL);
-            mr.v = 0;
-        }
-        mr.h = 0;    // no horizontal scroll while zooming
-    } else { // scroll_mode
-        // Normal scrolling, no modifier
-        mr.v = wheel_v;
-        mr.h = -wheel_h;  // flip if needed
-    }
-
-    // Suppress pointer movement while scrolling/zooming
-    mr.x = 0;
-    mr.y = 0;
-    return mr;
-}
-
-// Map encoder rotation to Volume Up and Down
-bool encoder_update_user(uint8_t index, bool clockwise) {
-    if (index == 0) { // First (and only) encoder
-        if (clockwise) {
-            tap_code(KC_VOLU);
-        } else {
-            tap_code(KC_VOLD);
-        }
-    }
-    return false;
+    return mouse_report;
 }
